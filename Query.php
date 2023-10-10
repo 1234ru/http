@@ -44,12 +44,16 @@ class Query
      *     'GET' => array|string,
      *     'POST' => array|string,
      *     'is_response_json' => bool,
-     *     'oauth' => [
-     *      'client_id' => '',
-     *      'token' => '',
-     *     ]
+     *     'headers' => [], // key => value,
+     *     'oauth' => self::$oauthDeclaration
      * ] */
     private $paramsDeclaration;
+
+    /** @var = [
+     *  'client_id' => '',
+     *  'token' => '',
+     * ] */
+    private $oauthDeclaration;
 
     private $HTTPheaders = [];
 
@@ -79,7 +83,16 @@ class Query
                 CURLOPT_POSTFIELDS => (is_array($P)) ? http_build_query($P) : $P
             ];
         }
-        self::appendOauthHeaderIfNecessary($params, $curl_settings);
+
+        self::appendHTTPheaders(
+            $params['headers'] ?? [],
+            $curl_settings
+        );
+
+        self::appendOauthHeaderIfNecessary(
+            $params['oauth'] ?? [],
+            $curl_settings
+        );
 
         $ch = curl_init($url);
         curl_setopt_array($ch, $curl_settings);
@@ -187,22 +200,41 @@ class Query
         return $error ?? '';
     }
 
-    /** @param $params = self::$paramsDeclaration */
+    private static function appendHTTPheaders(
+        array $headers,
+              &$curl_settings
+    ) {
+        foreach ($headers as $key => $value) {
+            $header_string = (is_numeric($key))
+                ? $value
+                : "$key: $value";
+            $curl_settings[CURLOPT_HTTPHEADER][] =
+                $header_string;
+        }
+    }
+
+    /**
+     * @param $params = self::$oauthDeclaration
+     */
     private static function appendOauthHeaderIfNecessary(
-        $params,
+        $oauth,
         &$curl_settings
     ) {
-        if ($o = $params['oauth'] ?? false) {
-            $header = 'Authorization: OAuth ';
-            if (is_array($o)) {
-                $header .= 'oauth_token="' . $o['token'] . '", '
-                    . 'oauth_client_id="' . $o['client_id'] . '"';
+        if ($oauth) {
+            $name = 'Authorization';
+            $value = 'OAuth ';
+            if (is_array($oauth)) {
+                $value .= 'oauth_token="' . $oauth['token'] . '", '
+                    . 'oauth_client_id="' . $oauth['client_id'] . '"';
             } else {
                 // Для Яндекс.Доставки, например, нужно посылать заголовок
                 // вида Authorization: Oauth <токен>
-                $header .= $o;
+                $value .= $oauth;
             }
-            $curl_settings[CURLOPT_HTTPHEADER][] = $header;
+            self::appendHTTPheaders(
+                [ $name => $value ],
+                $curl_settings
+            );
         }
     }
 
