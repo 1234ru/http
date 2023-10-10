@@ -1,4 +1,13 @@
 {
   "name": "one234ru/http",
-  "minimun-stability": "stable"
+  "minimun-stability": "stable",
+  "autoload": {
+    "psr-4": {
+      "One234ru\\HTTP\\": "."
+    }
+  },
+  "require": {
+    "ext-curl": "*",
+    "ext-json": "*"
+  }
 }
