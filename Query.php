@@ -78,19 +78,19 @@ class Query
 
         $curl_settings = $curl_options + self::DEFAULT_CURL_OPTIONS;
         if (isset($params['POST'])) {
-            $curl_settings += [
-                CURLOPT_CUSTOMREQUEST => 'POST',
-            ];
-            // Пустой массив превратится в json [], а не {}.
-            // В HTTP/2 это вызовет синтаксическую ошибку
-            // при разборе запроса, поэтому пустой массив
-            // в состав полей не включаем.
+            $curl_settings[CURLOPT_CUSTOMREQUEST] = 'POST';
             if ($params['POST']) {
-                $curl_settings += [
-                    CURLOPT_POSTFIELDS => (is_array($params['POST']))
-                        ? http_build_query($params['POST'])
-                        : $params['POST']
-                ];
+                if (is_array($params['POST'])) {
+                    // Пустой массив в json должен превратиться
+                    // в {}, а не {}, иначе в HTTP/2 будет
+                    // синтаксическая ошибка при разборе запроса.
+                    $postfields = ($params['is_response_json'])
+                        ? json_encode($params['POST'], JSON_FORCE_OBJECT)
+                        : http_build_query($params['POST']);
+                } else {
+                    $postfields = $params['POST'];
+                }
+                $curl_settings[CURLOPT_POSTFIELDS] = $postfields;
             }
         }
 
