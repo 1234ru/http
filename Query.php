@@ -77,11 +77,21 @@ class Query
         }
 
         $curl_settings = $curl_options + self::DEFAULT_CURL_OPTIONS;
-        if ($P = $params['POST'] ?? false) {
+        if (isset($params['POST'])) {
             $curl_settings += [
                 CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => (is_array($P)) ? http_build_query($P) : $P
             ];
+            // Пустой массив превратится в json [], а не {}.
+            // В HTTP/2 это вызовет синтаксическую ошибку
+            // при разборе запроса, поэтому пустой массив
+            // в состав полей не включаем.
+            if ($params['POST']) {
+                $curl_settings += [
+                    CURLOPT_POSTFIELDS => (is_array($params['POST']))
+                        ? http_build_query($params['POST'])
+                        : $params['POST']
+                ];
+            }
         }
 
         self::appendHTTPheaders(
@@ -130,7 +140,7 @@ class Query
             ];
         }
 
-        $error = self::makeErrorText($response, $url, $params, $curl_options);
+        $error = self::makeErrorText($response, $url, $params, $curl_settings);
 
         return compact('result', 'error', 'request', 'response');
 
