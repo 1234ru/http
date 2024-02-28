@@ -57,6 +57,8 @@ class Request
     
     private $curlOptions = [];
 
+    private $isResponseJSON;
+
     private $responseHTTPheaders = [];
 
     /**
@@ -70,6 +72,9 @@ class Request
         $direct_curl_options = []
     ) {
         $this->URL = $url;
+
+        $this->isResponseJSON = $params['is_response_json'] ?? false;
+
         $this->curlOptions[CURLOPT_URL] = $this->URL
             . self::makeQueryString
                 ($params['GET'] ?? '', true);
@@ -125,8 +130,8 @@ class Request
 
         if (
             !$curl_error_code
-            AND ($status_code == 200)
-            AND ($params['is_response_json'] ?? false)
+            AND $status_code == 200
+            AND $this->isResponseJSON
         ) {
             $result = json_decode($body, true);
             $this->response += [
