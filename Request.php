@@ -32,6 +32,8 @@ class Request
 
     private $URL;
 
+    private $URLpath;
+
     /** @var = [
      *  'url' => string,
      *  'params' => self::$paramsDeclaration,
@@ -72,15 +74,13 @@ class Request
         $params = [],
         $direct_curl_options = []
     ) {
-        $this->URL = $url;
+        $this->URL = $url
+            . self::makeQueryString
+            ($params['GET'] ?? '', true);;
 
         $this->params = $params;
 
         $this->isResponseJSON = $params['is_response_json'] ?? false;
-
-        $this->curlOptions[CURLOPT_URL] = $this->URL
-            . self::makeQueryString
-                ($params['GET'] ?? '', true);
 
         $this->curlOptions = $direct_curl_options
             + self::DEFAULT_CURL_OPTIONS;
@@ -170,12 +170,12 @@ class Request
 
     private static function makeQueryString(
         $query_params,
-        $prepend_question_mark = false
+        $prepend_with_question_mark = false
     ) :string {
         $query_string = (is_array($query_params))
             ? http_build_query($query_params)
             : $query_params;
-        if ($prepend_question_mark and $query_string) {
+        if ($prepend_with_question_mark and $query_string) {
             $query_string = "?" . $query_string;
         }
         return $query_string;
