@@ -43,8 +43,9 @@ class Request
     /** @var = [
      *     'GET' => array|string,
      *     'POST' => array|string,
-     *     'is_response_json' => bool,
      *     'headers' => [], // key => value,
+     *     'is_response_json' => bool,
+     *     'pass_post_params_as_json' => bool,
      *     'oauth' => self::$oauthDeclaration
      * ] */
     private $params;
@@ -54,7 +55,7 @@ class Request
      *  'token' => '',
      * ] */
     private $oauthDeclaration;
-    
+
     private $curlOptions = [];
 
     private $isResponseJSON;
@@ -88,7 +89,9 @@ class Request
             $this->curlOptions += [
                 CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS =>
-                    self::makeQueryString($params['POST'])
+                    ($this->params['pass_post_params_as_json'] ?? false)
+                    ? json_encode($params['POST'])
+                    : self::makeQueryString($params['POST'])
             ];
         }
 
