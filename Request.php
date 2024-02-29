@@ -266,18 +266,13 @@ class Request
     private function printResponse()
     {
         $msg = '';
-        $h = array_filter(
-            $this->response['headers'],
-            function($key) {
-                return is_numeric($key);
-            },
-            ARRAY_FILTER_USE_KEY
-        );
-        if ($h) {
-            // $msg .= " (" . implode(' -> ', $h) . ")";
-            $msg .= implode("\n", $h) . "\n\n";
+        foreach ($this->response['headers'] as $key => $value) {
+            if (!is_numeric($key)) {
+                $msg .= "$key: ";
+            }
+            $msg .= "$value\n";
         }
-        $msg .= $this->response['body'];
+        $msg .= "\n" . $this->response['body'];
         return $msg;
     }
 
