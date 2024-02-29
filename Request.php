@@ -47,7 +47,7 @@ class Request
      *     'headers' => [], // key => value,
      *     'oauth' => self::$oauthDeclaration
      * ] */
-    private $paramsDeclaration;
+    private $params;
 
     /** @var = [
      *  'client_id' => '',
@@ -63,7 +63,7 @@ class Request
 
     /**
      * @param $url = ''
-     * @param $params = self::$paramsDeclaration
+     * @param $params = self::$params
      * @param array|void $direct_curl_options
      */
     public function __construct(
@@ -72,6 +72,8 @@ class Request
         $direct_curl_options = []
     ) {
         $this->URL = $url;
+
+        $this->params = $params;
 
         $this->isResponseJSON = $params['is_response_json'] ?? false;
 
@@ -238,7 +240,7 @@ class Request
 
         $msg .= "\n\n=== REQUEST ===\n\n"
             . $this->printRequest()
-            . "=== RESPONSE ===\n\n"
+            . "\n\n=== RESPONSE ===\n\n"
             . $this->printResponse()
             . "\n\n"
             . "=========\n\n" ;
@@ -256,7 +258,9 @@ class Request
 
     private function printRequest()
     {
-        return $this->response['curl_info']['request_header'];
+        return $this->response['curl_info']['request_header']
+            . self::printAsJSON
+                ($this->params['GET'] ?? $this->params['POST']);
     }
 
     private function printResponse()
