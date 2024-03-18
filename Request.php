@@ -135,7 +135,7 @@ class Request
 
         if (
             !$curl_error_code
-            AND $status_code == 200
+            AND $this->isStatusCodeOK($status_code)
             AND $this->isResponseJSON
         ) {
             $result = json_decode($body, true);
@@ -226,7 +226,7 @@ class Request
                 . "curl_getinfo(): "
                 . self::printAsJSON($this->response['curl_info'])
                 . "\n\n";
-        } elseif ($this->response['status_code'] != 200) {
+        } elseif (!$this->isStatusCodeOK($this->response['status_code'])) {
             // echo self::printAsJSON($this->response['curl_info']); exit;
             $msg = "HTTP code not 200 ({$this->response['status_code']})";
 
@@ -277,6 +277,18 @@ class Request
         }
         $msg .= "\n" . $this->response['body'];
         return $msg;
+    }
+
+    private function isStatusCodeOK($code)
+    {
+        $first_digit = floor($code/100);
+        return (
+            $first_digit == 2
+            OR (
+                $first_digit == 3
+                AND in_array( CURLOPT_FOLLOWLOCATION, $this->curlOptions)
+            )
+        );
     }
 
 }
