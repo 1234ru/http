@@ -30,9 +30,7 @@ class Request
 
     public string $error;
 
-    private $URL;
-
-    private $URLpath;
+    public $URL;
 
     /** @var = [
      *  'url' => string,
