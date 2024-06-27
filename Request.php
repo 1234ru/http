@@ -259,7 +259,7 @@ class Request
         return json_encode($data , $flags);
     }
 
-    private function printRequest()
+    public function printRequest()
     {
         return $this->response['curl_info']['request_header']
             . self::printAsJSON
