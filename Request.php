@@ -59,7 +59,8 @@ class Request
     private $curlOptions = [];
 
     private $isResponseJSON;
-
+    private $requestHTTPheaders;
+    
     private $responseHTTPheaders = [];
 
     private const DEFAULT_SETTINGS = [
@@ -111,7 +112,7 @@ class Request
             ];
         }
 
-        self::appendHTTPheaders(
+        self::appendHTTPheadersToRequest(
             $params['headers'] ?? [],
             $this->curlOptions
         );
@@ -171,7 +172,7 @@ class Request
         $received_at = new \DateTime();
         $curl_info = curl_getinfo($ch);
         $status_code = $curl_info['http_code'];
-        $headers = $this->HTTPheaders;
+        $headers = $this->requestHTTPheaders;
         $curl_error_code = curl_errno($ch);
         $curl_error_text = curl_error($ch);
 
@@ -215,9 +216,9 @@ class Request
         if ($work) {
             $parts = explode(':', trim($header_string), 2);
             if (count($parts) > 1) {
-                $this->HTTPheaders[$parts[0]] = trim($parts[1]);
+                $this->requestHTTPheaders[$parts[0]] = trim($parts[1]);
             } else {
-                $this->HTTPheaders[] = trim($header_string);
+                $this->requestHTTPheaders[] = trim($header_string);
             }
         }
         return strlen($header_string);
@@ -237,7 +238,7 @@ class Request
         return $query_string;
     }
 
-    private static function appendHTTPheaders(
+    private static function appendHTTPheadersToRequest(
         array $headers,
               &$curl_settings
     )
@@ -269,7 +270,7 @@ class Request
                 // вида Authorization: Oauth <токен>
                 $value .= $oauth;
             }
-            self::appendHTTPheaders(
+            self::appendHTTPheadersToRequest(
                 [$name => $value],
                 $curl_settings
             );
