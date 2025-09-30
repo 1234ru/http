@@ -326,7 +326,7 @@ class Request
         return $output;
     }
 
-    private function printResponse()
+    public function printResponse()
     {
         $msg = '';
         foreach ($this->response['headers'] as $key => $value) {
