@@ -62,19 +62,37 @@ class Request
 
     private $responseHTTPheaders = [];
 
+    private const DEFAULT_SETTINGS = [
+        'warn_when_get_query_length_exceeds' => 0,
+    ];
+
+    /** @var = [
+     *  'warn_when_get_query_length_exceeds' => int, // 0 to disable check
+     * ]
+     */
+    private $settings;
+
     /**
      * @param $url = ''
      * @param $params = self::$params
      * @param array|void $direct_curl_options
+     * @param $other_options = self::$settings
      */
     public function __construct(
         $url,
         $params = [],
-        $direct_curl_options = []
-    ) {
-        $this->URL = $url
-            . self::makeQueryString
-            ($params['GET'] ?? '', true);;
+        $direct_curl_options = [],
+        $other_options = []
+    )
+    {
+        $this->settings = $other_options + self::DEFAULT_SETTINGS;
+
+        $this->URL = self::appendGETparamsToURL(
+            $url,
+            $params['GET'] ?? null
+        );
+
+        $this->checkGetQueryLength();
 
         $this->params = $params;
 
@@ -88,8 +106,8 @@ class Request
                 CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS =>
                     ($this->params['pass_post_params_as_json'] ?? false)
-                    ? json_encode($params['POST'])
-                    : self::makeQueryString($params['POST'])
+                        ? json_encode($params['POST'])
+                        : self::makeQueryString($params['POST'])
             ];
         }
 
@@ -103,9 +121,48 @@ class Request
             $this->curlOptions
         );
     }
+    private static function appendGETparamsToURL(
+        string     $url,
+        array|null $get_params
+    ): string
+    {
+        $full_url = $url;
+        if ($get_params) {
+            $prepend_with = empty(parse_url($url, PHP_URL_QUERY))
+                ? '?'
+                : '&';
+            $full_url .= self::makeQueryString(
+                $get_params,
+                $prepend_with
+            );
+        }
+        return $full_url;
+    }
+
+    private function checkGetQueryLength()
+    {
+        $max_length =
+            $this->settings['warn_when_get_query_length_exceeds'];
+        if ($max_length) {
+            $query_string = parse_url($this->URL, PHP_URL_QUERY);
+            $length = strlen($query_string);
+            if ($length > $max_length) {
+                $msg = sprintf(<<<TEXT
+                            GET query is too long (%d bytes, which is more than %d):
+                            %s
+                            TEXT,
+                        $length,
+                        $max_length,
+                        $query_string
+                    );
+                trigger_error($msg, E_USER_NOTICE);
+                // throw new \Exception($msg, E_USER_NOTICE);
+            }
+        }
+    }
 
     /** @throws \Exception */
-    public function send() :string|array|null
+    public function send(): string|array|null
     {
         $ch = curl_init($this->URL);
         curl_setopt_array($ch, $this->curlOptions);
@@ -133,8 +190,8 @@ class Request
 
         if (
             !$curl_error_code
-            AND $this->isStatusCodeOK($status_code)
-            AND $this->isResponseJSON
+            and $this->isStatusCodeOK($status_code)
+            and $this->isResponseJSON
         ) {
             $result = json_decode($body, true);
             $this->response += [
@@ -142,7 +199,7 @@ class Request
                 'json_error_text' => json_last_error_msg(),
             ];
         }
-        
+
         $this->error = $this->makeErrorText();
 
         if ($this->error) {
@@ -152,7 +209,7 @@ class Request
         return $result;
     }
 
-    private function registerHeader($curl_handler, string $header_string) :int
+    private function registerHeader($curl_handler, string $header_string): int
     {
         $work = trim($header_string);
         if ($work) {
@@ -167,22 +224,24 @@ class Request
     }
 
     private static function makeQueryString(
-        $query_params,
-        $prepend_with_question_mark = false
-    ) :string {
+        string|array $query_params,
+        string       $prepend_with = ''
+    ): string
+    {
         $query_string = (is_array($query_params))
             ? http_build_query($query_params)
             : $query_params;
-        if ($prepend_with_question_mark and $query_string) {
-            $query_string = "?" . $query_string;
+        if ($query_string and $prepend_with) {
+            $query_string = $prepend_with . $query_string;
         }
         return $query_string;
     }
 
     private static function appendHTTPheaders(
         array $headers,
-        &$curl_settings
-    ) {
+              &$curl_settings
+    )
+    {
         foreach ($headers as $key => $value) {
             $header_string = (is_numeric($key))
                 ? $value
@@ -197,7 +256,8 @@ class Request
     private static function appendOauthHeaderIfNecessary(
         $oauth,
         &$curl_settings
-    ) {
+    )
+    {
         if ($oauth) {
             $name = 'Authorization';
             $value = 'OAuth ';
@@ -210,13 +270,13 @@ class Request
                 $value .= $oauth;
             }
             self::appendHTTPheaders(
-                [ $name => $value ],
+                [$name => $value],
                 $curl_settings
             );
         }
     }
 
-    private function makeErrorText() :string
+    private function makeErrorText(): string
     {
         if ($this->response['curl_error_code']) {
             $msg = $this->response['curl_error_text'] . "\n\n"
@@ -244,17 +304,17 @@ class Request
             . "\n\n=== RESPONSE ===\n\n"
             . $this->printResponse()
             . "\n\n"
-            . "=========\n\n" ;
+            . "=========\n\n";
 
         return $msg;
     }
 
-    private static function printAsJSON($data) :string
+    private static function printAsJSON($data): string
     {
         $flags = JSON_PRETTY_PRINT
             | JSON_UNESCAPED_UNICODE
             | JSON_UNESCAPED_SLASHES;
-        return json_encode($data , $flags);
+        return json_encode($data, $flags);
     }
 
     public function printRequest()
@@ -281,12 +341,12 @@ class Request
 
     private function isStatusCodeOK($code)
     {
-        $first_digit = floor($code/100);
+        $first_digit = floor($code / 100);
         return (
             $first_digit == 2
-            OR (
+            or (
                 $first_digit == 3
-                AND in_array( CURLOPT_FOLLOWLOCATION, $this->curlOptions)
+                and in_array(CURLOPT_FOLLOWLOCATION, $this->curlOptions)
             )
         );
     }
