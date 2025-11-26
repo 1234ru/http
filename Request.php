@@ -322,7 +322,14 @@ class Request
     public function printRequest()
     {
         $output = $this->response['curl_info']['request_header'];
-        if ($query = $this->params['GET'] ?? $this->params['POST']) {
+        if ($query =
+            $this->params['GET']
+            ?? $this->params['POST']
+            ?? $this->params['PATCH']
+            ?? $this->params['PUT']
+            ?? $this->params['DELETE']
+            ?? []
+        ) {
             $output .= self::printAsJSON($query);
         }
         return $output;
