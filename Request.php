@@ -103,14 +103,20 @@ class Request
         $this->curlOptions = $direct_curl_options
             + self::DEFAULT_CURL_OPTIONS;
 
-        if (isset($params['POST'])) {
-            $this->curlOptions += [
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS =>
-                    ($this->params['pass_post_params_as_json'] ?? false)
-                        ? json_encode($params['POST'])
-                        : self::makeQueryString($params['POST'])
-            ];
+        foreach(['POST', 'PATCH', 'PUT', 'DELETE'] as $type) {
+            if (isset($params[$type])) {
+                $this->curlOptions += [
+                    CURLOPT_CUSTOMREQUEST => $type,
+                    CURLOPT_POSTFIELDS =>
+                        (
+                            $this->params['pass_params_as_json']
+                            ?? $this->params['pass_post_params_as_json'] // legacy
+                            ?? false
+                        )
+                        ? json_encode($params[$type])
+                        : self::makeQueryString($params[$type])
+                ];
+            }
         }
 
         self::appendHTTPheaders(
