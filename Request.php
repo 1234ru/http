@@ -329,8 +329,8 @@ class Request
     {
         $output = $this->response['curl_info']['request_header'];
         if ($query =
-            $this->params['GET']
-            ?? $this->params['POST']
+            // $this->params['GET'] ??
+            $this->params['POST']
             ?? $this->params['PATCH']
             ?? $this->params['PUT']
             ?? $this->params['DELETE']
